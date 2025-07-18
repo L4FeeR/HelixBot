@@ -12,60 +12,73 @@ class GitInfo:
     def get_gituserinfo(self):
         print(f"[+] Getting information about {self.x}...")
         url = f"https://api.github.com/users/{quote_plus(self.x)}"
-        response = requests.get(url=url, headers=self.headers)
-
-        if response.status_code == 200:
-            data = response.json()
-            return f"""
+        try:
+            response = requests.get(url=url, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                return f"""
 GitHub Info
 
-👤 Username     : {data['login']}
+👤 Username     : {data.get('login', 'N/A')}
 🧑‍💼 Name         : {data.get('name', 'N/A')}
 📝 Bio          : {data.get('bio', 'N/A')}
-📦 Repos        : {data['public_repos']}
-👥 Followers    : {data['followers']}
-🔁 Following    : {data['following']}
-📅 Created At   : {data['created_at']}
-🌐 Profile      : {data['html_url']}
+📦 Repos        : {data.get('public_repos', 'N/A')}
+👥 Followers    : {data.get('followers', 'N/A')}
+🔁 Following    : {data.get('following', 'N/A')}
+📅 Created At   : {data.get('created_at', 'N/A')}
+🌐 Profile      : {data.get('html_url', 'N/A')}
 """
-        else:
-            return f"❌ Error: {response.status_code} - {response.json().get('message', 'User not found')}"
+            else:
+                try:
+                    msg = response.json().get('message', 'User not found')
+                except Exception:
+                    msg = 'User not found'
+                return f"❌ Error: {response.status_code} - {msg}"
+        except Exception as e:
+            return f"❌ Error: Exception occurred - {str(e)}"
 
     def get_repoinfo(self):
-        url=f"https://api.github.com/users/{self.x}/repos?per_page=1000&page=1"
-        response=requests.get(url=url, headers=self.headers)
-        data=response.json()
-        reps=[]
-        for repo in data:
-            reps.append(repo['name'])
+        url = f"https://api.github.com/users/{self.x}/repos?per_page=100&page=1"
+        reps = []
+        try:
+            response = requests.get(url=url, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                for repo in data:
+                    reps.append(repo.get('name', 'Unknown'))
+            else:
+                reps.append(f"❌ Error: {response.status_code}")
+        except Exception as e:
+            reps.append(f"❌ Exception: {str(e)}")
         return reps
 
-
-
     def get_repdet(self, repo):
-        url=f"https://api.github.com/repos/{self.x}/{repo}"
+        url = f"https://api.github.com/repos/{self.x}/{repo}"
         print(url)
-        response=requests.get(url=url, headers=self.headers)
-        if response.status_code !=200:
-            return f"""❌ Error: {response.status_code} - {response.json().get('message', 'Not found')}"""
-        else:
-            data=response.json()
-            return f"""
-            Githuh Repo Info
+        try:
+            response = requests.get(url=url, headers=self.headers, timeout=10)
+            if response.status_code != 200:
+                try:
+                    msg = response.json().get('message', 'Not found')
+                except Exception:
+                    msg = 'Not found'
+                return f"""❌ Error: {response.status_code} - {msg}"""
+            else:
+                data = response.json()
+                return f"""
+            GitHub Repo Info
 
-🧑‍💻 Owner       : {data['owner']['login']}
+🧑‍💻 Owner       : {data.get('owner', {}).get('login', 'N/A')}
 📝 Description : {data.get('description', 'No description')}
-🔖 License     : {data['license']['name'] if data['license'] else 'None'}
+🔖 License     : {data.get('license', {}).get('name', 'None') if data.get('license') else 'None'}
 
-⭐ Stars       : {data['stargazers_count']}
-🍴 Forks       : {data['forks_count']}
-👀 Watchers    : {data['watchers_count']}
-📂 Language    : {data['language'] or 'N/A'}
-📅 Created     : {data['created_at']}
-📅 Updated     : {data['updated_at']}
-
-🌐 URL         : {data['html_url']}
+⭐ Stars       : {data.get('stargazers_count', 0)}
+🍴 Forks       : {data.get('forks_count', 0)}
+👀 Watchers    : {data.get('watchers_count', 0)}
+📂 Language    : {data.get('language', 'N/A')}
+📅 Created     : {data.get('created_at', 'N/A')}
+📅 Updated     : {data.get('updated_at', 'N/A')}
+🌐 URL         : {data.get('html_url', 'N/A')}
 """
-
-
-
+        except Exception as e:
+            return f"❌ Error: Exception occurred - {str(e)}"
